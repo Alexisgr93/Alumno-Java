@@ -1,7 +1,7 @@
 package gui.alumnogui;
 
-import dao.AlumnoDAOSQL;
-import dao.AlumnoDAOTXT;
+import dao.AlumnoDaoSql; 
+import dao.AlumnoDaoTxt; 
 import dao.DAO;
 import dao.DAOException;
 import dao.DAOFactory;
@@ -28,10 +28,10 @@ public class AlumnoGUI extends javax.swing.JFrame {
     private AlumnosModel alumnosModel;
     
     private DAO<Alumno, Integer> dao;
-    private AlumnoDAOTXT daoTXT;
-    private AlumnoDAOSQL daoSQL;
+    private AlumnoDaoTxt daoTXT; 
+    private AlumnoDaoSql daoSQL; 
     
-    private String txtFilePath = ""; // Guardamos el path para reutilizar conexión TXT
+    private String txtFilePath = ""; 
 
     public AlumnoGUI() {
         initComponents();
@@ -41,50 +41,55 @@ public class AlumnoGUI extends javax.swing.JFrame {
         // Estado inicial de paneles
         dbConnPanel.setVisible(false);
         txtPanel.setVisible(true);
-        verTodosCheckBox.setSelected(false); // Por defecto desmarcado (No ver eliminados)
+        verTodosCheckBox.setSelected(false); 
         
-        alumnosModel = new AlumnosModel();
-        alumnosModel.setAlumnos(alumnos);
+        // Inicialización del modelo con la lista base
+        alumnosModel = new AlumnosModel(alumnos);
         alumnosTable.setModel(alumnosModel);
         
-        // Listener manual para el CheckBox de eliminados
+        // Listeners manuales asignados
         verTodosCheckBox.addActionListener(evt -> refrescarGrilla());
-        
-        // Listener para el botón Consultar (que faltaba asignar en el .form)
         consutarButton.addActionListener(evt -> consultarButtonActionPerformed());
-        
-        // Listener para conectar a Base de Datos
         jButton1.addActionListener(evt -> conectarBDButtonActionPerformed());
     }
 
-    // [initComponents() omitido por espacio, se mantiene igual al generado por NetBeans]
-
     /**
-     * Centraliza la recarga de datos desde el DAO capturando excepciones mediante popups.
+     * Centraliza la recarga de datos desde el DAO filtrando activos/eliminados en la vista.
      */
     private void refrescarGrilla() {
         if (dao == null) return;
         try {
-            // Pasamos el estado del checkbox: true para incluir eliminados, false para solo activos
-            boolean incluirEliminados = verTodosCheckBox.isSelected();
-            List<Alumno> listaActualizada = dao.findAll(incluirEliminados);
-            setAlumnosInModel(listaActualizada);
+            List<Alumno> todosLosAlumnos = dao.findAll();
+            List<Alumno> listaFiltrada = new ArrayList<>();
+            
+            boolean mostrarTodos = verTodosCheckBox.isSelected();
+            
+            for (Alumno alu : todosLosAlumnos) {
+                if (mostrarTodos || "ACTIVO".equalsIgnoreCase(alu.getEstado())) {
+                    listaFiltrada.add(alu);
+                }
+            }
+            
+            setAlumnosInModel(listaFiltrada);
         } catch (DAOException ex) {
             Logger.getLogger(AlumnoGUI.class.getName()).log(Level.SEVERE, null, ex);
             JOptionPane.showMessageDialog(this, "Error al cargar alumnos: " + ex.getMessage(), "Error de Datos", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void setAlumnosInModel(final List<Alumno> alumnos1) {
-        this.alumnos = alumnos1;
-        alumnosModel.setAlumnos(alumnos1);
-        alumnosModel.fireTableDataChanged();
+    /**
+     * Sincroniza la lista interna con la tabla y fuerza el redibujado visual.
+     */
+    private void setAlumnosInModel(final List<Alumno> nuevaLista) {
+        this.alumnos.clear();
+        this.alumnos.addAll(nuevaLista);
+        alumnosModel.fireTableDataChanged(); 
     }
 
     /**
      * Alterna la vista de paneles y REUTILIZA las conexiones si ya existen.
      */
-    private void repoComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_repoComboBoxActionPerformed
+    private void repoComboBoxActionPerformed(java.awt.event.ActionEvent evt) {
         int seleccion = repoComboBox.getSelectedIndex();
         
         if (seleccion == 0) { // TXT
@@ -94,7 +99,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
                 dao = daoTXT;
                 refrescarGrilla();
             } else {
-                setAlumnosInModel(new ArrayList<>()); // Limpiar grilla hasta que elija archivo
+                setAlumnosInModel(new ArrayList<>()); 
             }
         } else { // Base de Datos
             txtPanel.setVisible(false);
@@ -103,21 +108,20 @@ public class AlumnoGUI extends javax.swing.JFrame {
                 dao = daoSQL;
                 refrescarGrilla();
             } else {
-                setAlumnosInModel(new ArrayList<>()); // Limpiar grilla hasta que se conecte
+                setAlumnosInModel(new ArrayList<>()); 
             }
         }
-    }//GEN-LAST:event_repoComboBoxActionPerformed
+    }
 
     /**
      * Acción para buscar el archivo TXT y establecer la conexión.
      */
-    private void browseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browseButtonActionPerformed
+    private void browseButtonActionPerformed(java.awt.event.ActionEvent evt) {
         JFileChooser chooser = new JFileChooser();
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             String nuevoPath = chooser.getSelectedFile().getAbsolutePath();
             pathfileTextField.setText(nuevoPath);
             
-            // 🔁 REUTILIZACIÓN: Si el archivo es el mismo y ya existe el DAO, no lo recreamos
             if (daoTXT != null && nuevoPath.equals(txtFilePath)) {
                 dao = daoTXT;
                 refrescarGrilla();
@@ -130,7 +134,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
                 config.put(TIPO_DAO, DAOFactory.TIPO_DAO_TXT);
                 config.put(FULLPATH, txtFilePath);
                 
-                daoTXT = (AlumnoDAOTXT) DAOFactory.createDAO(config);
+                daoTXT = (AlumnoDaoTxt) DAOFactory.createDAO(config);
                 dao = daoTXT;
                 
                 refrescarGrilla();
@@ -139,10 +143,10 @@ public class AlumnoGUI extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "Error de configuración: " + ex.getLocalizedMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
-    }//GEN-LAST:event_browseButtonActionPerformed
+    }
 
     /**
-     * Conexión a SQL (Lógica asociada a tu jButton1). REUTILIZA si ya está conectado.
+     * Conexión a SQL. REUTILIZA si ya está conectado.
      */
     private void conectarBDButtonActionPerformed() {
         String usuario = userDBTextField.getText().trim();
@@ -151,7 +155,6 @@ public class AlumnoGUI extends javax.swing.JFrame {
             return;
         }
         
-        // 🔁 REUTILIZACIÓN: Si ya existe la instancia SQL, evitamos volver a conectarnos
         if (daoSQL != null) {
             dao = daoSQL;
             refrescarGrilla();
@@ -161,12 +164,10 @@ public class AlumnoGUI extends javax.swing.JFrame {
         
         try {
             Map<String, String> config = new HashMap<>();
-            config.put(TIPO_DAO, "SQL"); // O la constante equivalente en tu DAOFactory
+            config.put(TIPO_DAO, "SQL"); 
             config.put("USER", usuario);
-            // Agrega acá los demás parámetros requeridos por tu DAOFactory para SQL (url, password, etc.)
             
-            // Suponiendo que tu factory devuelve AlumnoDAOSQL para este tipo:
-            daoSQL = (AlumnoDAOSQL) DAOFactory.createDAO(config); 
+            daoSQL = (AlumnoDaoSql) DAOFactory.createDAO(config); 
             dao = daoSQL;
             
             refrescarGrilla();
@@ -178,9 +179,9 @@ public class AlumnoGUI extends javax.swing.JFrame {
     }
 
     /**
-     * ❌ Acción ELIMINAR con Confirmación y Baja Lógica.
+     * Acción ELIMINAR con Confirmación y Baja Lógica.
      */
-    private void eliminarButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_eliminarButtonActionPerformed
+    private void eliminarButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) {
             JOptionPane.showMessageDialog(this, "No hay ningún repositorio conectado.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -190,7 +191,6 @@ public class AlumnoGUI extends javax.swing.JFrame {
         if (index >= 0) {
             Alumno alu = alumnos.get(index);
             
-            // Mensaje de confirmación obligatorio
             int resp = JOptionPane.showConfirmDialog(
                 this, 
                 "¿Está seguro de eliminar al alumno " + alu.getNombre() + " " + alu.getApellido() + "?", 
@@ -201,9 +201,8 @@ public class AlumnoGUI extends javax.swing.JFrame {
             
             if (resp == JOptionPane.YES_OPTION) {
                 try {
-                    // El DAO se encarga de cambiar el atributo 'estado' a inactivo internamente (Baja Lógica)
                     dao.delete(alu.getDni()); 
-                    refrescarGrilla(); // Recargamos para reflejar el cambio inmediatamente
+                    refrescarGrilla(); 
                     JOptionPane.showMessageDialog(this, "Alumno eliminado correctamente (Baja Lógica).", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                 } catch (DAOException ex) {
                     Logger.getLogger(AlumnoGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -213,48 +212,45 @@ public class AlumnoGUI extends javax.swing.JFrame {
         } else {
             JOptionPane.showMessageDialog(this, "Debe seleccionar un alumno de la lista.", "Atención", JOptionPane.WARNING_MESSAGE);
         }
-    }//GEN-LAST:event_eliminarButtonActionPerformed
+    }
 
     /**
-     * ✏️ Acción CREAR: Abre el formulario de carga.
+     * Acción CREAR: Abre el formulario de carga.
      */
-    private void crearButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_crearButtonActionPerformed
+    private void crearButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) {
             JOptionPane.showMessageDialog(this, "Primero debe conectar un repositorio (TXT o BD).", "Atención", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
-        // Pasamos null en 'alumno' porque es una creación de registro nuevo
         FormularioAlumnoDialog dialog = new FormularioAlumnoDialog(this, true, null, dao, "CREAR");
         dialog.setVisible(true);
-        refrescarGrilla(); // Al cerrar el diálogo, refresca los cambios
-    }//GEN-LAST:event_crearButtonActionPerformed
+        refrescarGrilla(); 
+    }
 
     /**
-     * ✏️ Acción MODIFICAR: Pasa el alumno seleccionado y bloquea la Clave Primaria (DNI).
+     * Acción MODIFICAR: Pasa el alumno seleccionado y bloquea la Clave Primaria (DNI).
      */
-    private void modificarButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_modificarButtonActionPerformed
+    private void modificarButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) return;
         int index = alumnosTable.getSelectedRow();
         if (index >= 0) {
             Alumno alu = alumnos.get(index);
-            // Modo MODIFICAR
             FormularioAlumnoDialog dialog = new FormularioAlumnoDialog(this, true, alu, dao, "MODIFICAR");
             dialog.setVisible(true);
             refrescarGrilla();
         } else {
             JOptionPane.showMessageDialog(this, "Debe seleccionar un alumno para modificar.", "Atención", JOptionPane.WARNING_MESSAGE);
         }
-    }//GEN-LAST:event_modificarButtonActionPerformed
+    }
 
     /**
-     * 📋 Acción CONSULTAR: Modo sólo lectura para ver todos los campos.
+     * Acción CONSULTAR: Modo sólo lectura para ver todos los campos.
      */
     private void consultarButtonActionPerformed() {
         int index = alumnosTable.getSelectedRow();
         if (index >= 0) {
             Alumno alu = alumnos.get(index);
-            // Modo CONSULTAR
             FormularioAlumnoDialog dialog = new FormularioAlumnoDialog(this, true, alu, dao, "CONSULTAR");
             dialog.setVisible(true);
         } else {
@@ -262,19 +258,55 @@ public class AlumnoGUI extends javax.swing.JFrame {
         }
     }
 
-    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {
         try {
             if (daoTXT != null) daoTXT.close();
-            if (daoSQL != null) daoSQL.close();
         } catch (DAOException ex) {
             Logger.getLogger(AlumnoGUI.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }//GEN-LAST:event_formWindowClosing
+    }
+
+    /**
+     * Inicializador de componentes mínimos requeridos de la interfaz Swing.
+     */
+    private void initComponents() {
+        dbConnPanel = new javax.swing.JPanel();
+        txtPanel = new javax.swing.JPanel();
+        alumnosTable = new javax.swing.JTable();
+        verTodosCheckBox = new javax.swing.JCheckBox();
+        consutarButton = new javax.swing.JButton();
+        jButton1 = new javax.swing.JButton(); 
+        repoComboBox = new javax.swing.JComboBox<>();
+        pathfileTextField = new javax.swing.JTextField();
+        userDBTextField = new javax.swing.JTextField();
+        
+        repoComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "TXT", "Base de Datos" }));
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        repoComboBox.addActionListener(evt -> repoComboBoxActionPerformed(evt));
+        
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGap(0, 400, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGap(0, 300, Short.MAX_VALUE)
+        );
+        pack();
+    }
 
     public static void main(String args[]) {
-        // [Cuerpo del Main por defecto de NetBeans para levantar la View]
         java.awt.EventQueue.invokeLater(() -> new AlumnoGUI().setVisible(true));
     }
     
-    // ... Variables declaration automática ...
+    // Componentes de interfaz gráfica declarados correctamente
+    private javax.swing.JTable alumnosTable;
+    private javax.swing.JButton consutarButton;
+    private javax.swing.JPanel dbConnPanel;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JComboBox<String> repoComboBox;
+    private javax.swing.JTextField pathfileTextField;
+    private javax.swing.JPanel txtPanel;
+    private javax.swing.JTextField userDBTextField;
+    private javax.swing.JCheckBox verTodosCheckBox;
 }

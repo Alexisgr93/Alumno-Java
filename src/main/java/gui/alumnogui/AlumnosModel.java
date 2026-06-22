@@ -5,51 +5,49 @@ import javax.swing.table.AbstractTableModel;
 import persona.Alumno;
 
 /**
- * Modelo de tabla optimizado para la grilla de Alumnos según los requerimientos del TP.
- * @author g.guzman
+ * Modelo de tabla personalizado para mostrar la lista de alumnos en la interfaz gráfica.
  */
 public class AlumnosModel extends AbstractTableModel {
-    
-    private List<Alumno> alumnos;
-    // Agregamos la columna de Estado requerida por las especificaciones
-    private static final String[] ENCABEZADOS = {"DNI", "APELLIDO", "NOMBRE", "ESTADO"};
 
-    public void setAlumnos(List<Alumno> alumnos) {
+    private final List<Alumno> alumnos;
+    private final String[] columnas = {"DNI", "Nombre", "Apellido", "Promedio"};
+
+    // Constructor
+    public AlumnosModel(List<Alumno> alumnos) {
         this.alumnos = alumnos;
     }
 
     @Override
     public int getRowCount() {
-        return alumnos != null ? alumnos.size() : 0;
+        return alumnos.size();
     }
 
     @Override
     public int getColumnCount() {
-        return ENCABEZADOS.length;
+        return columnas.length;
+    }
+
+    @Override
+    public String getColumnName(int columnIndex) {
+        return columnas[columnIndex];
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        if (alumnos == null || rowIndex >= alumnos.size()) {
-            return null;
-        }
+        Alumno alumno = alumnos.get(rowIndex);
         
-        Alumno alu = alumnos.get(rowIndex);
+        // Estructura switch compatible con Java 8
         switch (columnIndex) {
-            case 0 -> { return alu.getDni(); }
-            case 1 -> { return alu.getApellido(); }
-            case 2 -> { return alu.getNombre(); }
-            case 3 -> { 
-                // El estado suele ser un boolean (true=activo, false=eliminado) o un String/char.
-                // Adaptalo según cómo esté definido en tu clase Alumno (ej: alu.getEstado() o alu.isActivo())
-                return alu.getEstado(); 
-            }
-            default -> throw new AssertionError("Columna inválida");
+            case 0:
+                return alumno.getDni();
+            case 1:
+                return alumno.getNombre();
+            case 2:
+                return alumno.getApellido();
+            case 3:
+                return alumno.getPromedio();
+            default:
+                return null;
         }
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        return ENCABEZADOS[column];
     }
 }
