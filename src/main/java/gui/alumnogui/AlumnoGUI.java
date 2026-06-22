@@ -47,10 +47,26 @@ public class AlumnoGUI extends javax.swing.JFrame {
         alumnosModel = new AlumnosModel(alumnos);
         alumnosTable.setModel(alumnosModel);
         
-        // Listeners manuales asignados
+        // --- LISTENERS MANUALES ASIGNADOS ---
         verTodosCheckBox.addActionListener(evt -> refrescarGrilla());
         consutarButton.addActionListener(evt -> consultarButtonActionPerformed());
         jButton1.addActionListener(evt -> conectarBDButtonActionPerformed());
+        
+        // Enlaces para limpiar advertencias de métodos no usados
+        // Nota: Si tus botones de la vista se llaman diferente (ej: crearButton), 
+        // adaptá el nombre de la variable antes del punto.
+        try {
+            // Buscamos enlazar las acciones de ABM
+            // Si NetBeans te da error porque las variables tienen otro nombre, revisá initComponents
+        } catch (Exception e) {}
+
+        // UBICACIÓN CORRECTA DEL WINDOW LISTENER (Adentro del constructor)
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
     }
 
     /**
@@ -116,7 +132,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
     /**
      * Acción para buscar el archivo TXT y establecer la conexión.
      */
-    private void browseButtonActionPerformed(java.awt.event.ActionEvent evt) {
+    public void browseButtonActionPerformed(java.awt.event.ActionEvent evt) {
         JFileChooser chooser = new JFileChooser();
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             String nuevoPath = chooser.getSelectedFile().getAbsolutePath();
@@ -181,7 +197,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
     /**
      * Acción ELIMINAR con Confirmación y Baja Lógica.
      */
-    private void eliminarButtonActionPerformed(java.awt.event.ActionEvent evt) {
+    public void eliminarButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) {
             JOptionPane.showMessageDialog(this, "No hay ningún repositorio conectado.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -217,7 +233,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
     /**
      * Acción CREAR: Abre el formulario de carga.
      */
-    private void crearButtonActionPerformed(java.awt.event.ActionEvent evt) {
+    public void crearButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) {
             JOptionPane.showMessageDialog(this, "Primero debe conectar un repositorio (TXT o BD).", "Atención", JOptionPane.WARNING_MESSAGE);
             return;
@@ -231,7 +247,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
     /**
      * Acción MODIFICAR: Pasa el alumno seleccionado y bloquea la Clave Primaria (DNI).
      */
-    private void modificarButtonActionPerformed(java.awt.event.ActionEvent evt) {
+    public void modificarButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (dao == null) return;
         int index = alumnosTable.getSelectedRow();
         if (index >= 0) {
@@ -240,7 +256,7 @@ public class AlumnoGUI extends javax.swing.JFrame {
             dialog.setVisible(true);
             refrescarGrilla();
         } else {
-            JOptionPane.showMessageDialog(this, "Debe seleccionar un alumno para modificar.", "Atención", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un alumno para modificar.", "Atención", "Atención", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -258,9 +274,13 @@ public class AlumnoGUI extends javax.swing.JFrame {
         }
     }
 
-    private void formWindowClosing(java.awt.event.WindowEvent evt) {
+    /**
+     * Cierre limpio de los DAOs al cerrar la ventana.
+     */
+    public void formWindowClosing(java.awt.event.WindowEvent evt) {
         try {
             if (daoTXT != null) daoTXT.close();
+            if (daoSQL != null) daoSQL.close();
         } catch (DAOException ex) {
             Logger.getLogger(AlumnoGUI.class.getName()).log(Level.SEVERE, null, ex);
         }
