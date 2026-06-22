@@ -1,22 +1,18 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package gui.alumnogui;
 
-import java.time.LocalDate;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
 import persona.Alumno;
 
 /**
- *
+ * Modelo de tabla optimizado para la grilla de Alumnos según los requerimientos del TP.
  * @author g.guzman
  */
 public class AlumnosModel extends AbstractTableModel {
     
     private List<Alumno> alumnos;
-    private static final String[] ENCABEZADOS = {"DNI", "NOMBRE", "APELLIDO", "FECHA NAC."};
+    // Agregamos la columna de Estado requerida por las especificaciones
+    private static final String[] ENCABEZADOS = {"DNI", "APELLIDO", "NOMBRE", "ESTADO"};
 
     public void setAlumnos(List<Alumno> alumnos) {
         this.alumnos = alumnos;
@@ -24,8 +20,7 @@ public class AlumnosModel extends AbstractTableModel {
 
     @Override
     public int getRowCount() {
-        
-        return alumnos.size();
+        return alumnos != null ? alumnos.size() : 0;
     }
 
     @Override
@@ -35,22 +30,21 @@ public class AlumnosModel extends AbstractTableModel {
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
+        if (alumnos == null || rowIndex >= alumnos.size()) {
+            return null;
+        }
+        
         Alumno alu = alumnos.get(rowIndex);
         switch (columnIndex) {
-            case 0 -> {
-                return alu.getDni();
+            case 0 -> { return alu.getDni(); }
+            case 1 -> { return alu.getApellido(); }
+            case 2 -> { return alu.getNombre(); }
+            case 3 -> { 
+                // El estado suele ser un boolean (true=activo, false=eliminado) o un String/char.
+                // Adaptalo según cómo esté definido en tu clase Alumno (ej: alu.getEstado() o alu.isActivo())
+                return alu.getEstado(); 
             }
-            case 1 -> {
-                return alu.getNombre();
-            }
-            case 2 -> {
-                return alu.getApellido();
-            }
-            case 3 -> {
-                // return alu.getFecNac(); // TODO
-                return LocalDate.now().plusYears(rowIndex); // simulación
-            }
-            default -> throw new AssertionError();
+            default -> throw new AssertionError("Columna inválida");
         }
     }
 
@@ -58,6 +52,4 @@ public class AlumnosModel extends AbstractTableModel {
     public String getColumnName(int column) {
         return ENCABEZADOS[column];
     }
-    
-    
 }
